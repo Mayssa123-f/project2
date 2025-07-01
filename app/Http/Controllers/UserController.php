@@ -3,72 +3,60 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Exports\UsersExport;
 use Illuminate\Http\Request;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Response;
+use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
+use Spatie\QueryBuilder\QueryBuilder;
+use Spatie\QueryBuilder\AllowedFilter;
 
 class UserController extends Controller
 {
- public function index()
-{
-    $users = User::all(); 
+    public function index(Request $request)
+    {
+        $users = QueryBuilder::for(User::class)
+            ->allowedFilters([
+                'name',
+                'email'
+            ])
+            ->allowedSorts(['id', 'name', 'email', 'created_at'])
+            ->paginate($request->get('perPage', 10))
+            ->appends($request->query());
 
-    return response()->json($users);
-}
-   public function store(Request $request)
-{
-    $formfields = $request->validate([
-        'name' => 'required|string',
-        'email' => 'required|email',
-        'password' => 'required|string|min:8'
-    ]);
-    $existingUser = User::where('email', $formfields['email'])->first();
-
-    if ($existingUser) {
-        return response()->json([
-            'message' => 'Email already exists. Please use a different email.'
-        ], 409);
+        return response(['success' => true, 'data' => $users]);
     }
-    $formfields['password'] = bcrypt($formfields['password']);
+    public function show(User $user)
+    {
+        return response(['success' => true, 'data' => $user]);
+    }
+    public function store(Request $request)
+    {
+        $formfields = $request->validate([
+            'name' => ['required', 'string'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
 
-    $user = User::create($formfields);
+        $user = User::create($formfields);
 
-    return response()->json([
-        'message' => 'User created successfully',
-        'data' => $user
-    ], 201);
-}
-
-   public function update(Request $request, User $user)
-{
-    $formfields = $request->validate([
-        'name' => 'required|string|sometimes',
-        'email' => 'required|sometimes|email|unique:users,email,' . $user->id,
-        'password' => 'required|sometimes|string|min:8'
-    ]);
-
-       if (isset($formfields['password'])) {
-        $formfields['password'] = bcrypt($formfields['password']);
+        return response(['success' => true, 'data' => $user]);
     }
 
-    $user->update($formfields);
+    public function update(Request $request, User $user)
+    {
+        $formfields = $request->validate([
+            'name' => ['nullable', 'string'],
+            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['nullable', 'string', 'min:8'],
+        ]);
 
-    return response()->json([
-        'message' => 'User updated successfully.',
-        'data' => $user
-    ],201);
-}
+        $user->update($formfields);
 
-public function destroy(User $user){
-    $user->delete();
-    return response()->json([
-        'message' => 'User deleted successfully.'
-    ]);
+        return response(['success' => true, 'data' => $user]);
+    }
 
-}
-public function exportUsers()
-{
-    return Excel::download(new UsersExport, 'users.xlsx');
-}
+    public function destroy(User $user)
+    {
+        $user->delete();
+        return response(['success' => true], Response::HTTP_NO_CONTENT);
+    }
 }

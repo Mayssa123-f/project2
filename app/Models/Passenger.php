@@ -8,20 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 class Passenger extends Model
 {
     use HasFactory;
-    
-protected $fillable = [
-    'firstName',
-    'lastName',
-    'flight_id',
-    'email',
-    'password',
-    'DOB',
-    'passport_expiry_date',
-];
 
+    protected $guarded = [];
+    protected $casts = [
+        'password' => 'hashed',
+    ];
     public function flight()
-{
-    return $this->belongsTo(Flight::class);
-}
-
+    {
+        return $this->belongsTo(Flight::class);
+    }
 }
