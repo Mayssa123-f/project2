@@ -8,17 +8,30 @@ use Illuminate\Http\Response;
 use App\Mail\FlightReminderEmail;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class FlightController extends Controller
 {
     public function index(Request $request)
     {
-        $flights = QueryBuilder::for(Flight::class)->allowedFilters(['departure_city', 'arrival_city'])
-            ->allowedSorts(['id', 'departure_city', 'arrival_city', 'departure_time'])
-            ->paginate($request->get('per_page', 10))
-            ->appends($request->query());
-        return response(['success' => true, 'data' => $flights]);
+        $cacheKey = 'flights_' . md5($request->fullUrl());
+
+        $fromCache = Cache::has($cacheKey);
+
+        $flights = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($request) {
+            return QueryBuilder::for(Flight::class)
+                ->allowedFilters(['departure_city', 'arrival_city'])
+                ->allowedSorts(['id', 'departure_city', 'arrival_city', 'departure_time'])
+                ->paginate($request->get('per_page', 10))
+                ->appends($request->query());
+        });
+
+        return response()->json([
+            'success' => true,
+            'from_cache' => $fromCache,
+            'data' => $flights,
+        ]);
     }
     public function show(Flight $flight)
     {
@@ -55,18 +68,4 @@ class FlightController extends Controller
         $flight->delete();
         return response(['success' => true], Response::HTTP_NO_CONTENT);
     }
-    // public function sendReminder($id)
-    // {
-    //     $flight = Flight::with('passengers')->find($id);
-
-    //     if (!$flight) {
-    //         return response(['success' => false]);
-    //     }
-
-    //     foreach ($flight->passengers as $passenger) {
-    //         Mail::to($passenger->email)->send(new FlightReminderEmail($flight));
-    //     }
-
-    //     return response(['success' => true, 'data' => $flight]);
-    // }
 }

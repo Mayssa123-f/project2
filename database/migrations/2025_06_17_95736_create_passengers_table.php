@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('password');
             $table->date('DOB');
             $table->date('passport_expiry_date');
-           // $table->softDeletes();
+            // $table->softDeletes();
             $table->timestamps();
         });
     }

@@ -22,6 +22,8 @@ class PassengerController extends Controller
             ->allowedSorts(['id', 'firstName', 'lastName', 'email'])
             ->paginate($request->get('perPage', 10))
             ->appends($request->query());
+        return Image::canvas(100, 100, '#ff0000')->response('png');
+
         return response(['success' => true, 'data' => $passengers]);
     }
     public function show(Passenger $passenger)

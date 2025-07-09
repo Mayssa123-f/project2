@@ -12,9 +12,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-         echo "Starting to seed passengers...\n";
-    \App\Models\Passenger::factory()->count(490)->create();
-    echo "Finished seeding.\n";
+        echo "Starting to seed passengers...\n";
+        \App\Models\Passenger::factory()->count(490)->create();
+        echo "Finished seeding.\n";
     }
-    
 }
